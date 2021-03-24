@@ -171,3 +171,7 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+
+# database
+database/*
+oasis_stimulation/*
