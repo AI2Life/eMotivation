@@ -12,8 +12,9 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfile
 import os
 import pandas as pd
-from psychopy import visual, event, gui
+from psychopy import visual, event, gui, core
 import numpy as np
+from psychopy.core import MonotonicClock
 
 
 
@@ -44,7 +45,7 @@ class Stimulation:
             'unp_val_max': 3.0,
             'unp_aro_min': 4.5,
             'unp_aro_max': 7.0,
-            }
+            },
          ):
         """
         exp_name : TYPE str, optional
@@ -119,7 +120,7 @@ class Stimulation:
             
             
             self.selected_images['path'] = pd.Series(
-                        [os.path.join(self.images_dir, image_name) for image_name in list(stim.selected_images['Theme'])],
+                        [os.path.join(self.images_dir, image_name) for image_name in list(self.selected_images['Theme'])],
                         index=self.selected_images.index
                         )
             
@@ -183,19 +184,7 @@ class Stimulation:
                         
                 
             
-#            self.selected_image
-            
-            
-            
-            
-   
-#            selected_unp = gen_values_df.loc[(gen_values_df['Valence_mean_' + self.gender] >= self.val_range[4]) 
-#                                      & (gen_values_df['Valence_mean_' + self.gender] <= self.val_range[5])
-#                                      & (gen_values_df['Arousal_mean_' + self.gender] >= self.aro_range[4])
-#                                      & (gen_values_df['Arousal_mean_' + self.gender] <= self.aro_range[5])]    
-            
-        
-          # select pleasure images
+
      
         
     def build_exp_dirs(self):
@@ -205,29 +194,7 @@ class Stimulation:
             folder_root=self.cwd,
             folder_name=self.exp_name
             )
-#        self.selected_stim = self.create_dir(
-#            folder_root=self.curr_exp_dir,
-#            folder_name='selected_stim_dir'
-#            )
-#        if self.stim_genders == None:
-#            self.gender_stim = self.create_dir(
-#                folder_root=self.selected_stim,
-#                folder_name='no_gender_diff'
-#            )   
-#        else:
-#            for gender in self.stim_genders:
-#                self.gender_stim = self.create_dir(
-#                    folder_root=self.selected_stim,
-#                    folder_name=gender
-#                    )
-#                for stim_group in self.stim_groups:
-#                    self.group_stim = self.create_dir(
-#                        folder_root=self.gender_stim,
-#                        folder_name=stim_group
-#                        )
-#                    self.curr_stim_path_dict[gender + '_' + stim_group] = \
-#                        self.group_stim
-#                        
+
                         
         
         
@@ -313,24 +280,45 @@ class Stimulation:
 #        # experiment stuff
 
 #        
-#    def showImage(self, imageN=0):
-#        """
-#        show single image
-#        """
+    def showImage(self, imageN=0, image_time=6.0):
+        """
+        show single image
+        """
 #        stim_keys = [] 
-#        currImagePath = os.path.join(
-#                self.imagesDir, 
-#                self.imagesList[imageN]
-#                )
-#        
-#        # present start message
-#        currImage = visual.ImageStim(
-#            self.stim_window, 
-#            currImagePath
-#            )
-#        currImage.draw()
-#        self.stim_window.flip()  
+        currImagePath = self.stim_path_list[imageN]
+        currImage = visual.ImageStim(
+            self.stim_window, 
+            currImagePath
+            )
+        currImage.draw()
+        self.stim_window.flip()
+        self.stims_timestamp.append(self.exp_clock.getTime())
+        core.wait(image_time)
+        
+#        while self.exp_clock.getTime() - image_start < image_time:
+#            
+#            
 #        # wait user 
+#        while len(stim_keys) == 0:
+#            stim_keys = event.getKeys(keyList=['space'])
+#            
+            
+    def show_fixcross(self,fix_time):
+        """
+        show single image
+        """
+        fix = visual.GratingStim(
+            win=self.stim_window,
+            mask="cross", 
+            size=0.05,
+            pos=[0,0],
+            sf=0
+            )
+        fix.draw()
+        self.stim_window.flip()
+        self.fix_timestamp.append(self.exp_clock.getTime())
+        core.wait(fix_time)
+        
 #        while len(stim_keys) == 0:
 #            stim_keys = event.getKeys(keyList=['space'])
 #        
@@ -409,36 +397,95 @@ class Stimulation:
                     )
                 )
             
-            
+    def build_subj_dir(self):
+        
+        self.results_dir = self.create_dir(
+                folder_root=self.curr_exp_dir, 
+                folder_name= 'results'
+                )
+               
+        subj_nick = self.subject_data_show[0]
+        
+        self.curr_subj_dir = self.create_dir(
+                folder_root=self.results_dir,
+                folder_name=subj_nick
+                )
+        
+                
             
     
-    def run_experiment(self):
+    def run_experiment(
+            self, 
+            image_time = 6,
+            fix_time = 6 
+            ):
 #        
         
         self.get_subj_info()
-        self.get_subj_stim()
+        self.build_subj_dir()
+        
+        if self.stim_genders == None:
+            
+            self.curr_stims_csv = pd.read_csv(os.path.join(
+                self.curr_exp_dir,
+                'selected_images_nogender.csv'
+                ) 
+            )
+                
+            self.curr_stims_csv = self.curr_stims_csv.sample(frac=1)
+            
+            self.stim_path_list = list(self.curr_stims_csv['path']) 
+            
+            
+            
+            
+        #init stim
+        if self.curr_stim_type == 'images':
+        
+            self.stim_window_size = [1920,1080]
+            self.stim_window = visual.Window(
+                size = self.stim_window_size,
+                monitor="testMonitor", 
+                color='black', 
+                units='norm',                                       
+                fullscr = False
+                )   
+#            
+            image_counter = 0
+            self.exp_clock = MonotonicClock()
+            self.stims_timestamp = []
+            self.fix_timestamp = []
+            while image_counter < len(self.stim_path_list)*2:
+                
+                if image_counter % 2 == 0:
+                    fix_time = np.random.uniform(fix_time-2,fix_time+2)
+                    self.show_fixcross(fix_time)
+                    
+                else:
+                    
+                    self.showImage(imageN=image_counter//2)
+                image_counter +=1
+            self.stim_window.close()
+        
+        
+        
+        
+            
+            
+        
+        
+        
+        
+        
+#        self.get_subj_stim()
         
 #        """
 #        show serial images
 #        """
 #        
-#        if self.curr_stim_type == 'images':
-#        
-#            self.stim_window_size = [1920,1080]
-#            self.stim_window = visual.Window(
-#                size = self.stim_window_size,
-#                monitor="testMonitor", 
-#                color='black', 
-#                units='norm',                                       
-#                fullscr = False
-#                )
+
 #            
-#            image_counter = 0
-#            while image_counter < max_images:
-#                self.showImage(imageN=curr_image_num)
-#                curr_image_num +=1
-#                image_counter +=1
-#            self.stim_window.close()
+#            
         
     def create_dir(self,
         folder_root='root', 
