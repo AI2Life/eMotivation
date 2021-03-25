@@ -1,52 +1,26 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Feb 22 16:13:48 2021
-
-@author: adria
-"""
-
-
-#%%
-
-from tkinter import Tk
-from tkinter.filedialog import askopenfile
+from typing import Union
 import os
+import time
 import pandas as pd
-from psychopy import visual, event, gui, core
+from psychopy import visual, gui, core
 import numpy as np
 from psychopy.core import MonotonicClock
-
-
-
+from eMotivation import static
 
 
 class Stimulation:
     """
     A class to stimulate subjects
     """
-    def __init__(self, 
-         exp_name = 'oasis stimulation',
-         stim_types= ['images','videos', 'sounds'], 
-         curr_stim_type = 'images',
-         dataset_name='oasis',
-         stim_genders = None, #['male','female']
-         group_size = 24,
-         stim_groups = ['pleasure', 'neutral', 'unpleasure'],
-         group_values = {
-            'ple_val_min': 4.5,
-            'ple_val_max': 7.0,
-            'ple_aro_min': 4.5,
-            'ple_aro_max': 7.0,
-            'neu_val_min': 3.8,
-            'neu_val_max': 4.2,
-            'neu_aro_min': 1.0,
-            'neu_aro_max': 2.5,
-            'unp_val_min': 1.0,
-            'unp_val_max': 3.0,
-            'unp_aro_min': 4.5,
-            'unp_aro_max': 7.0,
-            },
-         ):
+    def __init__(self,
+                 experiment_name: Union[None, str] = None,
+                 curr_stim_type: str = 'images',
+                 dataset_name: str ='oasis',
+                 stim_genders: Union[None, str] = None,
+                 group_size: int = 24,
+                 group_values: Union[dict, None] = None,
+                 cwd: str = os.getcwd()):
+
         """
         exp_name : TYPE str, optional
             DESCRIPTION select experiment name
@@ -68,19 +42,39 @@ class Stimulation:
             The default is ['pleasure', 'neutral', 'unpleasure'].
             
         """
-        self.exp_name = exp_name
-        self.stim_types = stim_types
+
+        self.experiment_name = experiment_name if experiment_name is not None \
+            else ("experiment_%s_%s" %(time.localtime().tm_hour, time.localtime().tm_min))
         self.curr_stim_type = curr_stim_type
         self.dataset_name = dataset_name
         self.stim_genders = stim_genders
-        self.stim_groups = stim_groups
         self.group_size = group_size
-        self.group_values = group_values
-    
-        
-        
-        self.cwd = os.getcwd()
-        
+        self.stim_types = ["images", "videos", "audios"]
+        self.stim_groups = ['pleasure', 'neutral', 'unpleasure']
+        self.group_values = static.default_group_values if group_values is None else group_values
+
+        """
+        This assume the following directory structure:
+        └── eMotivation/
+            ├── __init__.py
+            ├── run.py
+            ├── static.py
+            └── database/
+                ├── Beauty ratings from Brielmann and Pelli (2019)
+                └── Images/
+                    └── oasis/
+                        ├── Images/
+                        │   ├── Acorns 1.jpg
+                        │   ├── Acorns 2.jpg
+                        │   ├── .......
+                        │   └── .......
+                        ├── oasis.csv
+                        └── oasis_gender.csv
+        """
+        self.cwd = cwd
+
+
+
         self.build_gen_dirs()
         self.load_dataset()
         self.build_exp_dirs()
@@ -182,59 +176,32 @@ class Stimulation:
                                 )
                         )
                         
-                
-            
-
-     
-        
     def build_exp_dirs(self):
         # build current experiment directory
         self.curr_stim_path_dict = {}
         self.curr_exp_dir = self.create_dir(
             folder_root=self.cwd,
-            folder_name=self.exp_name
-            )
+            folder_name=self.experiment_name
+        )
 
-                        
-        
-        
-                
-                    
-                    
-                
-                
-            
-            
-        
-        
-        
-        
-        
-        
-        
-        
-        
     def build_gen_dirs(self):
         # build dirs (first run)
         self.df_dir = os.path.join(self.cwd, 'database')
         if not os.path.exists(self.df_dir):
-            print ('first time run: create dirs')
-            os.makedirs(self.df_dir)            
-#            for stim in self.stim_types:
-#                # to update in future version
-#                _ = self.create_dir(
-#                        folder_root=self.df_dir, 
-#                        folder_name=''
-                      
-                        
+            print('first time run: create dirs')
+            os.makedirs(self.df_dir)
+            #            for stim in self.stim_types:
+
+    #                # to update in future version
+    #                _ = self.create_dir(
+    #                        folder_root=self.df_dir,
+    #                        folder_name=''
             
-#    
-#    
-#    
-    
-    
-    
-    
+
+     
+        
+
+
     
     def load_dataset(self):
         """
@@ -500,44 +467,12 @@ class Stimulation:
             print ('run: load dir {}'.format(folder_name))
         return folder_path
         
-    
-        
-    
-        
-    
-        
-            
-            
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
 if __name__ == '__main__':
-    
     stim = Stimulation(
-        exp_name = 'oasis stimulation',
+        experiment_name='oasis stimulation',
         curr_stim_type = 'images', 
         dataset_name='oasis',
         stim_genders= None, #['men', 'women'],
-        stim_groups = ['pleasure', 'neutral', 'unpleasure'],
         group_size = 24,
         group_values = {
             'ple_val_min': 4.5,

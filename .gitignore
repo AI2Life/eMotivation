@@ -173,5 +173,5 @@ coverage.xml
 docs/_build/
 
 # eMotivation specific stuffs
-database/*
+eMotivation/database/*
 oasis stimulation/*
