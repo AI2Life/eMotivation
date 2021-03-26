@@ -16,9 +16,8 @@ class Stimulation:
                  experiment_name: Union[None, str] = None,
                  curr_stim_type: str = 'images',
                  dataset_name: str ='oasis',
-                 stim_genders: Union[None, str] = None,
-                 group_size: int = 24,
-                 group_values: Union[dict, None] = None,
+                 group_size: int = 24, # this * neutral, pleasure, unpleasure
+                 group_values: Union[dict, None] = None, #
                  cwd: str = os.getcwd()):
 
         """
@@ -47,7 +46,7 @@ class Stimulation:
             else ("experiment_%s_%s" %(time.localtime().tm_hour, time.localtime().tm_min))
         self.curr_stim_type = curr_stim_type
         self.dataset_name = dataset_name
-        self.stim_genders = stim_genders
+        self.stim_genders = ["male", "female", "nonbin"]
         self.group_size = group_size
         self.stim_types = ["images", "videos", "audios"]
         self.stim_groups = ['pleasure', 'neutral', 'unpleasure']
@@ -72,10 +71,12 @@ class Stimulation:
                         └── oasis_gender.csv
         """
         self.cwd = cwd
+        #todo: se c'è una cartella con le info delle liste dei geneder, passi altrimewnti me la crei
 
 
 
         self.build_gen_dirs()
+
         self.load_dataset()
         self.build_exp_dirs()
         
@@ -472,24 +473,9 @@ if __name__ == '__main__':
         experiment_name='oasis stimulation',
         curr_stim_type = 'images', 
         dataset_name='oasis',
-        stim_genders= None, #['men', 'women'],
-        group_size = 24,
-        group_values = {
-            'ple_val_min': 4.5,
-            'ple_val_max': 7.0,
-            'ple_aro_min': 4.5,
-            'ple_aro_max': 7.0,
-            'neu_val_min': 3.8,
-            'neu_val_max': 4.2,
-            'neu_aro_min': 1.0,
-            'neu_aro_max': 2.5,
-            'unp_val_min': 1.0,
-            'unp_val_max': 3.0,
-            'unp_aro_min': 4.5,
-            'unp_aro_max': 7.0,
-            }
-        )
-    
+        group_size = 24)
+
+
     stim.run_experiment()
 #    a = stim.values_df
   
