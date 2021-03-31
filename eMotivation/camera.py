@@ -85,10 +85,10 @@ class Camera:
         
         
     def get_ff(self, frame):
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        cv2.imshow("gray frame", gray)
+        self.gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        cv2.imshow("gray frame", self.gray)
         
-        faces = self.ff_detector(gray)
+        faces = self.ff_detector(self.gray)
         for face in faces:
            
             x, y = face.left(), face.top()
@@ -96,11 +96,13 @@ class Camera:
             cv2.rectangle(frame, (x, y), (x1, y1), (255, 0, 0), 2)
             
             
-            self.landmarks = self.kp_detector(gray, face)
+            self.landmarks = self.kp_detector(self.gray, face)
             
             self.get_face_feature(face_feature = 'right eye')
             self.get_face_feature(face_feature = 'left eye')
             self.get_face_feature(face_feature = 'mouth')
+            
+            self.extract_eyes()
                           
     
     def get_face_feature(self,
@@ -140,12 +142,110 @@ class Camera:
                             center_bottom,
                             (0, 255, 0),
                             2)
+        
+    def extract_eyes(self):
+        
+        #extract right eye region
+        self.right_eye_region = np.array([(self.landmarks.part(36).x,
+                                      self.landmarks.part(36).y),
+                                     (self.landmarks.part(37).x,
+                                      self.landmarks.part(37).y),
+                                     (self.landmarks.part(38).x, 
+                                      self.landmarks.part(38).y),
+                                     (self.landmarks.part(39).x,
+                                      self.landmarks.part(39).y),
+                                     (self.landmarks.part(40).x,
+                                      self.landmarks.part(40).y),
+                                     (self.landmarks.part(41).x,
+                                      self.landmarks.part(41).y)],
+                                      np.int32)
+                                     
+        
+        frame_height, frame_width, _ = self.frame.shape                             
+        self.right_mask = np.zeros((frame_height, frame_width), np.uint8)
+
+        cv2.polylines(self.right_mask, [self.right_eye_region], True, 255, 2)
+        cv2.fillPoly(self.right_mask, [self.right_eye_region], 255)
+        
+        self.bitw_right_eye = cv2.bitwise_and(self.gray,
+                                         self.gray, 
+                                         mask=self.right_mask
+                                         )
+        cv2.imshow("right eye", self.right_mask)
+        cv2.imshow("btws right eye", self.bitw_right_eye)
+        
+        
+        # extract region
+        right_min_x = np.min(self.right_eye_region[:, 0])
+        right_max_x = np.max(self.right_eye_region[:, 0])
+        right_min_y = np.min(self.right_eye_region[:, 1])
+        right_max_y = np.max(self.right_eye_region[:, 1])
+
+        self.gray_right_eye = self.bitw_right_eye[
+            right_min_y: right_max_y, 
+            right_min_x: right_max_x
+            ]
+
+
+        _, self.threshold_right_eye = cv2.threshold(
+                self.gray_right_eye, 
+                70, 
+                255,
+                cv2.THRESH_BINARY
+                )
+
+        self.threshold_right_eye = cv2.resize(self.threshold_right_eye, None, fx=5, fy=5)
+        cv2.imshow("thrs right eye", self.threshold_right_eye)
+        
+        self.right_sclera_ratio = self.get_sclera_ratio(self.threshold_right_eye)
+        self.get_gaze(self.right_sclera_ratio)
+        
+        
+    def get_sclera_ratio(self, threshold_eye):
+        height, width = threshold_eye.shape    
+        left_side_threshold = threshold_eye[0: height, 0: int(width / 2)]
+        left_side_white = cv2.countNonZero(left_side_threshold)
+        right_side_threshold = threshold_eye[0: height, int(width / 2): width]
+        right_side_white = cv2.countNonZero(right_side_threshold)
+        try:
+            sclera_ratio = left_side_white / right_side_white
+        except:
+            sclera_ratio = 1.
+        return sclera_ratio 
+    
+    
+    def get_gaze(self, sclera_ratio):
+        # Gaze detection
+
+        if sclera_ratio <= 1:
+            cv2.putText(self.frame, 
+                        "Right", (50, 150), 
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        7, (255, 255, 255),10)
+
+    
+        elif 1 < sclera_ratio < 2.5:
+            cv2.putText(self.frame, 
+                        "Center", (50, 150), 
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        7, (255, 255, 255),10)
+
+        else:
+            cv2.putText(self.frame, 
+                        "Left", (50, 150), 
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        7, (255, 255, 255), 10)
+    
+        cv2.imshow('image', self.frame)
+
+        
+                
     
     
 if __name__ == '__main__':
     
     camera = Camera()
-    camera.get_camera()
+    camera.get_camera(max_time=50)
     
     
             
