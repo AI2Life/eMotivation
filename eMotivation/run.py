@@ -77,8 +77,14 @@ class Stimulation:
         if not os.path.exists(self.meta_path):
             static.create_meta_dir(self.meta_path)
         self.config = static.get_config_file(self.meta_path)
-
-        print(self.config)
+        print("pippo")
+        os.path.isdir('./file.txt')
+        if not os.path.isdir(os.path.join(self.config['database_path'],self.dataset_name)):
+            static.get_oasis(save_path=self.config['database_path'])
+            pass
+        print("pippo")
+        # todo: creare exp_plan in emot_data; salvare csv in exp_plan
+        
 
 
 
