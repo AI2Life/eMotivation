@@ -5,7 +5,7 @@ import pandas as pd
 from psychopy import visual, gui, core
 import numpy as np
 from psychopy.core import MonotonicClock
-from eMotivation import static
+import static
 
 
 class Stimulation:
@@ -76,8 +76,9 @@ class Stimulation:
             else os.path.join(os.environ["HOME"], ".emot_data")
         if not os.path.exists(self.meta_path):
             static.create_meta_dir(self.meta_path)
+        self.config = static.get_config_file(self.meta_path)
 
-
+        print(self.config)
 
 
 

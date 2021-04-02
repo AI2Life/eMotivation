@@ -30,6 +30,12 @@ def create_meta_dir(path: str):
     os.mkdir(path_database)
     with open(os.path.join(path, "config.json"), "w") as file:
         json.dump({"database_path": path_database}, file)
+    
+def get_config_file(meta_path: str):
+    with open(os.path.join(meta_path, "config.json"), "rb") as file:
+        loaded_file = json.load(file)
+    return loaded_file
+    
 
 
 
