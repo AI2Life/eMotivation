@@ -81,9 +81,6 @@ class Stimulation:
 
 
 
-
-
-
         self.build_gen_dirs()
 
         self.load_dataset()
