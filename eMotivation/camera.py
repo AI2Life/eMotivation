@@ -150,39 +150,94 @@ class Camera:
                                      (self.landmarks.part(41).x,
                                       self.landmarks.part(41).y)],
                                       np.int32)
+        self.left_eye_region= np.array([(self.landmarks.part(42).x,
+                                      self.landmarks.part(42).y),
+                                     (self.landmarks.part(43).x,
+                                      self.landmarks.part(43).y),
+                                     (self.landmarks.part(44).x, 
+                                      self.landmarks.part(44).y),
+                                     (self.landmarks.part(45).x,
+                                      self.landmarks.part(45).y),
+                                     (self.landmarks.part(46).x,
+                                      self.landmarks.part(46).y),
+                                     (self.landmarks.part(47).x,
+                                      self.landmarks.part(47).y)],
+                                      np.int32)
         
-        frame_height, frame_width, _ = self.frame.shape                             
+        
+        frame_height, frame_width, _ = self.frame.shape           
+        #costruzione della maschera per ogni occhio                  
         self.right_mask = np.zeros((frame_height, frame_width), np.uint8)
+        
+        self.left_mask = np.zeros((frame_height, frame_width), np.uint8)
+        
 
         cv2.polylines(self.right_mask, [self.right_eye_region], True, 255, 2)
         cv2.fillPoly(self.right_mask, [self.right_eye_region], 255)
+        
+        cv2.polylines(self.left_mask, [self.left_eye_region], True, 255, 2)
+        cv2.fillPoly(self.left_mask, [self.left_eye_region], 255)
         
         self.bitw_right_eye = cv2.bitwise_and(self.gray,
                                          self.gray, 
                                          mask=self.right_mask
                                          )
+        self.bitw_left_eye = cv2.bitwise_and(self.gray,
+                                         self.gray, 
+                                         mask=self.left_mask
+                                         )
+        
         cv2.imshow("right eye", self.right_mask)
         cv2.imshow("btws right eye", self.bitw_right_eye)
+        
+        cv2.imshow("left eye", self.left_mask)
+        cv2.imshow("btws left eye", self.bitw_left_eye)
         # extract region
         right_min_x = np.min(self.right_eye_region[:, 0])
         right_max_x = np.max(self.right_eye_region[:, 0])
         right_min_y = np.min(self.right_eye_region[:, 1])
         right_max_y = np.max(self.right_eye_region[:, 1])
-        self.gray_right_eye = self.bitw_right_eye[
+        
+        left_min_x = np.min(self.left_eye_region[:, 0])
+        left_max_x = np.max(self.left_eye_region[:, 0])
+        left_min_y = np.min(self.left_eye_region[:, 1])
+        left_max_y = np.max(self.left_eye_region[:, 1])
+        
+        
+        self.bitw_right_eye = self.bitw_right_eye[
             right_min_y: right_max_y, 
             right_min_x: right_max_x
             ]
         _, self.threshold_right_eye = cv2.threshold(
-                self.gray_right_eye, 
+                self.bitw_right_eye, 
                 70, 
                 255,
                 cv2.THRESH_BINARY
                 )
+        
+        self.bitw_left_eye = self.bitw_left_eye[
+            left_min_y: left_max_y, 
+            left_min_x: left_max_x
+            ]
+        _, self.threshold_left_eye = cv2.threshold(
+                self.bitw_left_eye, 
+                70, 
+                255,
+                cv2.THRESH_BINARY
+                )
+        
 
         self.threshold_right_eye = cv2.resize(self.threshold_right_eye, None, fx=5, fy=5)
+        self.threshold_left_eye = cv2.resize(self.threshold_left_eye, None, fx=5, fy=5)
+        
         cv2.imshow("thrs right eye", self.threshold_right_eye)
+        cv2.imshow("thrs left eye", self.threshold_left_eye)
+        
         self.right_sclera_ratio = self.get_sclera_ratio(self.threshold_right_eye)
-        self.get_gaze(self.right_sclera_ratio)
+        self.left_sclera_ratio = self.get_sclera_ratio(self.threshold_left_eye)
+        self.get_gaze(self.right_sclera_ratio, self.left_sclera_ratio)
+        
+        
         
         
     def get_sclera_ratio(self, threshold_eye):
@@ -190,7 +245,7 @@ class Camera:
         left_side_threshold = threshold_eye[0: height, 0: int(width / 2)]
         left_side_white = cv2.countNonZero(left_side_threshold)
         right_side_threshold = threshold_eye[0: height, int(width / 2): width]
-        right_side_white = cv2.countNonZero(right_side_threshold)
+        right_side_white = cv2.countNonZero(right_side_threshold) 
         try:
             sclera_ratio = left_side_white / right_side_white
         except:
@@ -198,24 +253,28 @@ class Camera:
         return sclera_ratio 
     
     
-    def get_gaze(self, sclera_ratio):
+    def get_gaze(self, right_sclera_ratio, left_sclera_ratio ):
         # Gaze detection
-        if sclera_ratio <= 1:
+        if (right_sclera_ratio + left_sclera_ratio)/2 <= 1:
             cv2.putText(self.frame, 
                         "Right", (50, 150), 
                         cv2.FONT_HERSHEY_SIMPLEX,
                         7, (255, 255, 255),10)
-        elif 1 < sclera_ratio < 2.5:
+        
+        elif 1 < (right_sclera_ratio + left_sclera_ratio)/2< 2.5:
             cv2.putText(self.frame, 
                         "Center", (50, 150), 
                         cv2.FONT_HERSHEY_SIMPLEX,
                         7, (255, 255, 255),10)
+        
         else:
             cv2.putText(self.frame, 
                         "Left", (50, 150), 
                         cv2.FONT_HERSHEY_SIMPLEX,
                         7, (255, 255, 255), 10)
-        cv2.imshow('image', self.frame)
+        cv2.imshow('image', self.frame) 
+        
+        
 
         
                 
