@@ -208,27 +208,30 @@ class Camera:
             right_min_y: right_max_y, 
             right_min_x: right_max_x
             ]
-        _, self.threshold_right_eye = cv2.threshold(
-                self.bitw_right_eye, 
-                70, 
+
+        # todo : calibrare i threshold
+
+
+        self.threshold_right_eye = cv2.adaptiveThreshold(
+                self.bitw_right_eye,
                 255,
-                cv2.THRESH_BINARY
-                )
+                cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
         
         self.bitw_left_eye = self.bitw_left_eye[
             left_min_y: left_max_y, 
             left_min_x: left_max_x
             ]
-        _, self.threshold_left_eye = cv2.threshold(
-                self.bitw_left_eye, 
-                70, 
+        self.threshold_left_eye = cv2.adaptiveThreshold(
+                self.bitw_left_eye,
                 255,
-                cv2.THRESH_BINARY
-                )
+                cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
         
 
-        self.threshold_right_eye = cv2.resize(self.threshold_right_eye, None, fx=5, fy=5)
-        self.threshold_left_eye = cv2.resize(self.threshold_left_eye, None, fx=5, fy=5)
+        #self.threshold_right_eye = cv2.resize(self.threshold_right_eye, None, fx=5, fy=5)
+        #self.threshold_left_eye = cv2.resize(self.threshold_left_eye, None, fx=5, fy=5)
+
+        self.threshold_right_eye = cv2.resize(self.threshold_right_eye, (600,300), fx=5, fy=5)
+        self.threshold_left_eye = cv2.resize(self.threshold_left_eye, (600, 300), fx=5, fy=5)
         
         cv2.imshow("thrs right eye", self.threshold_right_eye)
         cv2.imshow("thrs left eye", self.threshold_left_eye)
@@ -255,13 +258,13 @@ class Camera:
     
     def get_gaze(self, right_sclera_ratio, left_sclera_ratio ):
         # Gaze detection
-        if (right_sclera_ratio + left_sclera_ratio)/2 <= 1:
+        if (right_sclera_ratio + left_sclera_ratio)/2 >= 1.50:
             cv2.putText(self.frame, 
                         "Right", (50, 150), 
                         cv2.FONT_HERSHEY_SIMPLEX,
                         7, (255, 255, 255),10)
         
-        elif 1 < (right_sclera_ratio + left_sclera_ratio)/2< 2.5:
+        elif 0.50 < (right_sclera_ratio + left_sclera_ratio)/2< 1.50:
             cv2.putText(self.frame, 
                         "Center", (50, 150), 
                         cv2.FONT_HERSHEY_SIMPLEX,
