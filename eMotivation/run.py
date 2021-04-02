@@ -16,8 +16,8 @@ class Stimulation:
                  experiment_name: Union[None, str] = None,
                  curr_stim_type: str = 'images',
                  dataset_name: str ='oasis',
-                 group_size: int = 24, # this * neutral, pleasure, unpleasure
-                 group_values: Union[dict, None] = None, #
+                 group_size: int = 24, # this neutral, pleasure, unpleasure
+                 group_values: Union[dict, None] = None,
                  cwd: str = os.getcwd()):
 
         """
@@ -71,7 +71,16 @@ class Stimulation:
                         └── oasis_gender.csv
         """
         self.cwd = cwd
-        #todo: se c'è una cartella con le info delle liste dei geneder, passi altrimewnti me la crei
+        #todo: test with MacOS
+        self.meta_path = os.path.join(os.environ["USERPROFILE"], ".emot_data") if os.name == "nt" \
+            else os.path.join(os.environ["HOME"], ".emot_data")
+        if not os.path.exists(self.meta_path):
+            static.create_meta_dir(self.meta_path)
+
+
+
+
+
 
 
 
@@ -476,7 +485,7 @@ if __name__ == '__main__':
         group_size = 24)
 
 
-    stim.run_experiment()
+    # stim.run_experiment()
 #    a = stim.values_df
   
     

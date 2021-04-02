@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Mar 29 16:58:12 2021
-
-@author: adria
-"""
-
-
 import cv2
 from psychopy.core import MonotonicClock
 
@@ -19,8 +11,7 @@ def midpoint(p1 ,p2):
 
 
 
-vid_cod = cv2.VideoWriter_fourcc(*'MP4V') # definisco formato video
-
+vid_cod = cv2.VideoWriter_fourcc(*'mp4v') # definisco formato video
 
 
 
@@ -159,7 +150,6 @@ class Camera:
                                      (self.landmarks.part(41).x,
                                       self.landmarks.part(41).y)],
                                       np.int32)
-                                     
         
         frame_height, frame_width, _ = self.frame.shape                             
         self.right_mask = np.zeros((frame_height, frame_width), np.uint8)
@@ -173,20 +163,15 @@ class Camera:
                                          )
         cv2.imshow("right eye", self.right_mask)
         cv2.imshow("btws right eye", self.bitw_right_eye)
-        
-        
         # extract region
         right_min_x = np.min(self.right_eye_region[:, 0])
         right_max_x = np.max(self.right_eye_region[:, 0])
         right_min_y = np.min(self.right_eye_region[:, 1])
         right_max_y = np.max(self.right_eye_region[:, 1])
-
         self.gray_right_eye = self.bitw_right_eye[
             right_min_y: right_max_y, 
             right_min_x: right_max_x
             ]
-
-
         _, self.threshold_right_eye = cv2.threshold(
                 self.gray_right_eye, 
                 70, 
@@ -196,7 +181,6 @@ class Camera:
 
         self.threshold_right_eye = cv2.resize(self.threshold_right_eye, None, fx=5, fy=5)
         cv2.imshow("thrs right eye", self.threshold_right_eye)
-        
         self.right_sclera_ratio = self.get_sclera_ratio(self.threshold_right_eye)
         self.get_gaze(self.right_sclera_ratio)
         
@@ -216,26 +200,21 @@ class Camera:
     
     def get_gaze(self, sclera_ratio):
         # Gaze detection
-
         if sclera_ratio <= 1:
             cv2.putText(self.frame, 
                         "Right", (50, 150), 
                         cv2.FONT_HERSHEY_SIMPLEX,
                         7, (255, 255, 255),10)
-
-    
         elif 1 < sclera_ratio < 2.5:
             cv2.putText(self.frame, 
                         "Center", (50, 150), 
                         cv2.FONT_HERSHEY_SIMPLEX,
                         7, (255, 255, 255),10)
-
         else:
             cv2.putText(self.frame, 
                         "Left", (50, 150), 
                         cv2.FONT_HERSHEY_SIMPLEX,
                         7, (255, 255, 255), 10)
-    
         cv2.imshow('image', self.frame)
 
         
@@ -243,7 +222,6 @@ class Camera:
     
     
 if __name__ == '__main__':
-    
     camera = Camera()
     camera.get_camera(max_time=50)
     

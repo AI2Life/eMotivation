@@ -6,6 +6,8 @@ import zipfile
 import pandas as pd
 import numpy as np
 
+#os.environ["USERPROFILE"]
+#os.environ["HOME"]
 
 
 default_group_values = {'ple_val_min': 4.5,
@@ -20,6 +22,10 @@ default_group_values = {'ple_val_min': 4.5,
                         'unp_val_max': 3.0,
                         'unp_aro_min': 4.5,
                         'unp_aro_max': 7.0}
+
+def create_meta_dir(path: str):
+    os.mkdir(path)
+
 
 
 def get_oasis(save_path = os.getcwd(), name: str = "oasis"):
@@ -116,9 +122,6 @@ def generate_oasis_selection(dataset_path: str,
         result.append(pd.DataFrame( [item for sublist in this_gender_stimulus for item in sublist]))
     #todo: salavre questi in un singolo posto che non tocccheremo mai più
     return result
-
-path = "C:\\Users\\franc_pyl533c\\OneDrive\\Repository\\eMotivation\\oasis"
-x = generate_oasis_selection(group_values=default_group_values, dataset_path=path, seed=42)
 
 
 
