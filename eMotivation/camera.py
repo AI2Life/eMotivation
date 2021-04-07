@@ -11,6 +11,14 @@ import os
 def midpoint(p1 ,p2):
     return int((p1.x + p2.x)/2), int((p1.y + p2.y)/2)
 
+# colcolo la diagonale
+def diago(x, x1, y, y1):
+    return int(math.sqrt((x - x1) ** 2 + (y - y1) ** 2))
+
+def quadrato(x, x1, y, y1):
+    return int((x1-x)*(y-y1))
+
+
 
 
 vid_cod = cv2.VideoWriter_fourcc(*'mp4v') # definisco formato video
@@ -30,19 +38,12 @@ class Camera:
         
         
         save_path = os.path.join(os.getcwd(), "prova_video.mp4")
-        self.output = cv2.VideoWriter(
-            save_path, 
-            vid_cod, 
-            10, 
-            (640,480)
-            )
+        self.output = cv2.VideoWriter( save_path, vid_cod,  10, (640,480) )
 
         
         
         self.ff_detector = dlib.get_frontal_face_detector()# works only with gray images
-        self.kp_detector = dlib.shape_predictor(
-                "shape_predictor_68_face_landmarks.dat"
-                )# prende regioni dove prevede che ci sia qualcosa
+        self.kp_detector = dlib.shape_predictor( "shape_predictor_68_face_landmarks.dat" )# prende regioni dove prevede che ci sia qualcosa
         
         
         
@@ -79,9 +80,11 @@ class Camera:
         
     def get_ff(self, frame):
         self.gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        
         cv2.imshow("gray frame", self.gray)
         
         faces = self.ff_detector(self.gray)
+        
         for face in faces:
            
             x, y = face.left(), face.top()
@@ -99,7 +102,10 @@ class Camera:
                           
     
     def get_face_feature(self, face_feature = 'part'):
-        
+
+        # todo : Adriano ha detto di far riferimento al fatto che tra un frame e l'altro la bocca e` aperta e chiusa
+        # come buggarlo?
+
         if face_feature == 'right eye':
             left_and_right_point  = [36,36,39,39]
             center_top_and_bottom = [37,38,41,40]
@@ -109,8 +115,8 @@ class Camera:
         elif face_feature == 'mouth':
             left_and_right_point  = [48,48,54,54]
             center_top_and_bottom = [51,51,57,57]
-            
-        
+
+
         left_point    = (self.landmarks.part(left_and_right_point[0]).x,
                          self.landmarks.part(left_and_right_point[1]).y)
                       
@@ -122,42 +128,32 @@ class Camera:
                               
         center_bottom = midpoint(self.landmarks.part(center_top_and_bottom[2]),
                                  self.landmarks.part(center_top_and_bottom[3]))
+
+
+        volto = quadrato(self.landmarks.part(1), self.landmarks.part(9),
+                       self.landmarks.part(17), self.landmarks.part(10))
+
+        diago_sx = diago(center_top[0], center_bottom[0], center_top[1], center_bottom[1])
+
+        diago_dx = diago(left_point[0], right_point[0], left_point[1], right_point[1])
     
         hor_line = cv2.line(self.frame, left_point, right_point, (0, 255, 0), 2)
-        
+
         ver_line = cv2.line(self.frame,center_top, center_bottom, (0, 255, 0), 2)
 
-
-    def extract_mouth(self):
-
-        central_top = [62, 63, 64]
-        central_down = [68, 67, 66]
+        ellisse = math.pi * (diago_sx * diago_dx)
 
 
-        x1, y1 = central_top[2]
-        x3, y3 = central_top[1]
-        x4, y4 = central_top[0]
-        x2, y2 = central_down[2]
-        x5, y5 = central_down[1]
-        x6, y6, = central_down[0]
+        ratio = ellisse/volto
 
-        dist = math.sqrt(((x2+x5+x6) - (x1+x3+x4)) *2 + ((y2+y5+y6) - (y1+y3+y4)) ** 2)
+        if ratio >= 0.3:
+            cv2.putText(self.frame, "SBADIGLIO", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 7, (255, 0, 0), 10)
+        elif 0.15 < ratio < 0.3:
+            cv2.putText(self.frame, "PARLANDO", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 7, (255, 0, 0), 10)
+        elif ratio < 0.1:
+            cv2.putText(self.frame, "SILENZIO", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 7, (255, 0, 0), 10)
 
-        print(dist)
 
-        # creo dei cerchi sui punti interessati
-
-        img_top_0 = cv2.circle(self.frame, central_top[2], 1, (255, 255, 255, 0),2)
-        img_top_1 = cv2.circle(self.frame, central_top[1], 1, (255, 255, 255, 0), 2)
-        img_top_2 = cv2.circle(self.frame, central_top[0], 1, (255, 255, 255, 0), 2)
-
-        img_down_0 = cv2.circle(self.frame, central_down[2], 1, (255, 255, 255, 0), 2)
-        img_down_1 = cv2.circle(self.frame, central_down[1], 1, (255, 255, 255, 0), 2)
-        img_down_2 = cv2.circle(self.frame, central_down[0], 1, (255, 255, 255, 0), 2)
-
-        cv2.namedWindow("mouth", cv2.WINDOW_NORMAL)
-
-        cv2.imshow("Mouth", self.frame)
 
 
 
@@ -177,6 +173,7 @@ class Camera:
                                          (self.landmarks.part(41).x,
                                           self.landmarks.part(41).y)],
                                           np.int32)
+
             self.left_eye_region= np.array([(self.landmarks.part(42).x,
                                           self.landmarks.part(42).y),
                                          (self.landmarks.part(43).x,
@@ -193,6 +190,7 @@ class Camera:
 
 
             frame_height, frame_width, _ = self.frame.shape
+
             #costruzione della maschera per ogni occhio
             self.right_mask = np.zeros((frame_height, frame_width), np.uint8)
 
@@ -241,8 +239,8 @@ class Camera:
                                                             cv2.THRESH_BINARY, 11, 2)
 
 
-            self.threshold_right_eye = cv2.resize(self.threshold_right_eye, (600,300), fx=5, fy=5)
-            self.threshold_left_eye = cv2.resize(self.threshold_left_eye, (600, 300), fx=5, fy=5)
+            self.threshold_right_eye = cv2.resize(self.threshold_right_eye, (480,360), fx=5, fy=5)
+            self.threshold_left_eye = cv2.resize(self.threshold_left_eye, (480, 360), fx=5, fy=5)
 
             cv2.imshow("thrs right eye", self.threshold_right_eye)
             cv2.imshow("thrs left eye", self.threshold_left_eye)
