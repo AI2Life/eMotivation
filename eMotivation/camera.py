@@ -12,13 +12,11 @@ def midpoint(p1 ,p2):
     return int((p1.x + p2.x)/2), int((p1.y + p2.y)/2)
 
 # colcolo la diagonale
-def diago(x, x1, y, y1):
-    return int(math.sqrt((x - x1) ** 2 + (y - y1) ** 2))
+def diago(p1, p2):
+    return int(math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2))
 
-def quadrato(x, x1, y, y1):
-    return int((x1-x)*(y-y1))
-
-
+def quadrato(p1, p2):
+    return int((p2.x-p1.x)*(p2.y - p1.y))
 
 
 vid_cod = cv2.VideoWriter_fourcc(*'mp4v') # definisco formato video
@@ -97,6 +95,7 @@ class Camera:
             self.get_face_feature(face_feature = 'right eye')
             self.get_face_feature(face_feature = 'left eye')
             self.get_face_feature(face_feature = 'mouth')
+            self.get_face_feature(face_feature = 'diagonal')
             
             self.extract_eyes()
                           
@@ -115,6 +114,10 @@ class Camera:
         elif face_feature == 'mouth':
             left_and_right_point  = [48,48,54,54]
             center_top_and_bottom = [51,51,57,57]
+        elif face_feature == 'diagonal':
+            diago_sx = [62,62,66,66]
+            diago_dx = [64,64,68,68]
+
 
 
         left_point    = (self.landmarks.part(left_and_right_point[0]).x,
@@ -129,29 +132,30 @@ class Camera:
         center_bottom = midpoint(self.landmarks.part(center_top_and_bottom[2]),
                                  self.landmarks.part(center_top_and_bottom[3]))
 
+        d_sx = diago(self.landmarks.part(diago_sx[0]),
+                     self.landmarks.part(diago_sx[1]))
 
-        volto = quadrato(self.landmarks.part(1), self.landmarks.part(9),
-                       self.landmarks.part(17), self.landmarks.part(10))
+        d_dx = diago(self.landmarks.part(diago_dx[0]),
+                     self.landmarks.part(diago_dx[1]))
 
-        diago_sx = diago(center_top[0], center_bottom[0], center_top[1], center_bottom[1])
+        line_face = quadrato(self.landmarks.part(1),
+                             self.landmarks.part(9))
 
-        diago_dx = diago(left_point[0], right_point[0], left_point[1], right_point[1])
-    
         hor_line = cv2.line(self.frame, left_point, right_point, (0, 255, 0), 2)
 
-        ver_line = cv2.line(self.frame,center_top, center_bottom, (0, 255, 0), 2)
-
-        ellisse = math.pi * (diago_sx * diago_dx)
+        ver_line = cv2.line(self.frame, center_top, center_bottom, (0, 255, 0), 2)
 
 
-        ratio = ellisse/volto
+        ellisse = math.pi * (d_sx * d_dx)
+
+        ratio = ellisse/line_face
 
         if ratio >= 0.3:
-            cv2.putText(self.frame, "SBADIGLIO", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 7, (255, 0, 0), 10)
+          cv2.putText(self.frame, "SBADIGLIO", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 7, (255, 0, 0), 10)
         elif 0.15 < ratio < 0.3:
-            cv2.putText(self.frame, "PARLANDO", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 7, (255, 0, 0), 10)
+          cv2.putText(self.frame, "PARLANDO", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 7, (255, 0, 0), 10)
         elif ratio < 0.1:
-            cv2.putText(self.frame, "SILENZIO", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 7, (255, 0, 0), 10)
+          cv2.putText(self.frame, "SILENZIO", (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 7, (255, 0, 0), 10)
 
 
 
