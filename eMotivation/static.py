@@ -35,7 +35,11 @@ def get_config_file(meta_path: str):
     with open(os.path.join(meta_path, "config.json"), "rb") as file:
         loaded_file = json.load(file)
     return loaded_file
-    
+
+def add_config_file_record(meta_path: str, to_add : Dict):
+    new_config_file = {**to_add, **get_config_file(meta_path=meta_path)}
+    with open(os.path.join(meta_path, "config.json"), "w") as file:
+        json.dump(new_config_file, file)
 
 
 
@@ -48,12 +52,9 @@ def get_oasis(save_path = os.getcwd(), name: str = "oasis"):
     """
     # definisco un path dove salvo il downlaod
     complete_save_path = os.path.join(save_path, name + ".zip")
-
     # definsico un path dove estraggo il dataset
-
     data_path = os.path.join(save_path, name)
     os.mkdir(data_path)
-
     # download database in zip
     download_link = "http://benedekkurdi.com/oasis.php"
     response = requests.get(download_link, allow_redirects=True, stream=True)
@@ -66,14 +67,11 @@ def get_oasis(save_path = os.getcwd(), name: str = "oasis"):
             file.write(data)
     if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
         print("ERROR, something went wrong")
-
     #etraggo il file zip precedentemente scaricato in data_path
     with zipfile.ZipFile(complete_save_path, "r") as zip_ref:
         zip_ref.extractall(data_path)
-
     #elimino il file zip
     os.remove(complete_save_path)
-
     #aggiusto gli errori nei file csv
     filenames = ["OASIS.csv", "OASIS_bygender_CORRECTED_092617.csv"]
     for file in filenames:
@@ -81,11 +79,14 @@ def get_oasis(save_path = os.getcwd(), name: str = "oasis"):
         sheet.Theme[864] = sheet.Theme[864].rstrip()
         sheet.Theme[191] = sheet.Theme[191].rstrip()
         sheet.to_csv(os.path.join(data_path, file))
+    dic_path = generate_oasis_selection(data_path, seed=42)
+    dic_path["oasis_path"] = data_path
+    return dic_path
 
 
 def generate_oasis_selection(dataset_path: str, 
                              seed: int = 42,
-                             group_values: Dict = default_group_values,):
+                             group_values: Dict = default_group_values):
     
     rng = np.random.default_rng(seed=seed)
     result = list()
@@ -130,9 +131,18 @@ def generate_oasis_selection(dataset_path: str,
                         "Path": os.path.join(os.path.join("oasis", "Images") + img_names[i] + ".jpg")})
             type_sample = rng.choice(df_type, 24)
             this_gender_stimulus.append(type_sample)
-        result.append(pd.DataFrame( [item for sublist in this_gender_stimulus for item in sublist]))
-    #todo: salavre questi in un singolo posto che non tocccheremo mai più
-    return result
+        result.append(pd.DataFrame([item for sublist in this_gender_stimulus for item in sublist]))
+
+    stimulation_data_path = os.path.join(dataset_path, "stimulation_data")
+    os.mkdir(stimulation_data_path)
+    path_map = dict()
+    for gender, table in zip(genders, result):
+        table.to_csv(os.path.join(stimulation_data_path, gender + ".csv"))
+        path_map[gender] = os.path.join(stimulation_data_path, gender + ".csv")
+
+    return path_map
+
+
 
 
 
