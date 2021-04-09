@@ -15,10 +15,7 @@ class Stimulation:
     def __init__(self,
                  experiment_name: Union[None, str] = None,
                  curr_stim_type: str = 'images',
-                 dataset_name: str ='oasis',
-                 group_size: int = 24, # this neutral, pleasure, unpleasure
-                 group_values: Union[dict, None] = None,
-                 cwd: str = os.getcwd()):
+                 dataset_name: str ='oasis'):
 
         """
         exp_name : TYPE str, optional
@@ -47,225 +44,37 @@ class Stimulation:
         self.curr_stim_type = curr_stim_type
         self.dataset_name = dataset_name
         self.stim_genders = ["male", "female", "nonbin"]
-        self.group_size = group_size
         self.stim_types = ["images", "videos", "audios"]
         self.stim_groups = ['pleasure', 'neutral', 'unpleasure']
-        self.group_values = static.default_group_values if group_values is None else group_values
 
-        """
-        This assume the following directory structure:
-        └── eMotivation/
-            ├── __init__.py
-            ├── run.py
-            ├── static.py
-            └── database/
-                ├── Beauty ratings from Brielmann and Pelli (2019)
-                └── Images/
-                    └── oasis/
-                        ├── Images/
-                        │   ├── Acorns 1.jpg
-                        │   ├── Acorns 2.jpg
-                        │   ├── .......
-                        │   └── .......
-                        ├── oasis.csv
-                        └── oasis_gender.csv
-        """
-        self.cwd = cwd
         #todo: test with MacOS
-        self.meta_path = os.path.join(os.environ["USERPROFILE"], ".emot_data") if os.name == "nt" \
-            else os.path.join(os.environ["HOME"], ".emot_data")
+        self.meta_path: str = os.path.join(os.environ["USERPROFILE"], ".emot_data") \
+            if os.name == "nt" else os.path.join(os.environ["HOME"], ".emot_data")
         if not os.path.exists(self.meta_path):
             static.create_meta_dir(self.meta_path)
-        self.config = static.get_config_file(self.meta_path)
-        print("pippo")
-        os.path.isdir('./file.txt')
-        if not os.path.isdir(os.path.join(self.config['database_path'],self.dataset_name)):
-            static.get_oasis(save_path=self.config['database_path'])
-            pass
-        print("pippo")
-        # todo: creare exp_plan in emot_data; salvare csv in exp_plan
-        
+        self.config: dict = static.get_config_file(self.meta_path)
+        dataset_path = os.path.join(self.config['database_path'], self.dataset_name)
+        if not os.path.isdir(dataset_path):
+            oasis_paths = static.get_oasis(save_path=self.config['database_path'])
+            static.add_config_file_record(self.meta_path, oasis_paths)
 
 
-
-        self.build_gen_dirs()
-
-        self.load_dataset()
         self.build_exp_dirs()
-        
-        
-        if self.stim_genders == None:
-            
-            print(self.values_df)
-            
-            # select pleasure images
-            self.selected_ple = self.values_df.loc[(self.values_df['Valence_mean'] >= self.group_values['ple_val_min']) 
-                                                 & (self.values_df['Valence_mean'] <= self.group_values['ple_val_max'])
-                                                 & (self.values_df['Arousal_mean'] >= self.group_values['ple_aro_min'])
-                                                 & (self.values_df['Arousal_mean'] <= self.group_values['ple_aro_max'])]
-            
-            self.selected_ple = self.selected_ple.sample(n=self.group_size)
-            self.selected_ple['group'] = pd.Series('pleasure', index=self.selected_ple.index)
-            
-            self.selected_unp = self.values_df.loc[(self.values_df['Valence_mean'] >= self.group_values['unp_val_min']) 
-                                                 & (self.values_df['Valence_mean'] <= self.group_values['unp_val_max'])
-                                                 & (self.values_df['Arousal_mean'] >= self.group_values['unp_aro_min'])
-                                                 & (self.values_df['Arousal_mean'] <= self.group_values['unp_aro_max'])]
-            
-            self.selected_unp = self.selected_unp.sample(n=self.group_size)
-            self.selected_unp['group'] = pd.Series('unpleasure', index=self.selected_unp.index)
-            
-            self.selected_neu = self.values_df.loc[(self.values_df['Valence_mean'] >= self.group_values['neu_val_min']) 
-                                                 & (self.values_df['Valence_mean'] <= self.group_values['neu_val_max'])
-                                                 & (self.values_df['Arousal_mean'] >= self.group_values['neu_aro_min'])
-                                                 & (self.values_df['Arousal_mean'] <= self.group_values['neu_aro_max'])]
-            
-            self.selected_neu = self.selected_neu.sample(n=self.group_size)
-            self.selected_neu['group'] = pd.Series('neutral', index=self.selected_neu.index) 
-            
-        
-            self.selected_images = pd.concat([ self.selected_ple,  self.selected_unp,  self.selected_neu])
-            
-            
-            self.selected_images['path'] = pd.Series(
-                        [os.path.join(self.images_dir, image_name) for image_name in list(self.selected_images['Theme'])],
-                        index=self.selected_images.index
-                        )
-            
-            self.selected_images.to_csv(
-                os.path.join(
-                    self.curr_exp_dir,
-                    'selected_images_nogender.csv'
-                    )
-                )
-            
-        else:
-            
-            for gender in self.stim_genders:
-            
-                # select pleasure images
-                self.selected_ple = self.values_df.loc[(self.values_df['Valence_mean_' + gender] >= self.group_values['ple_val_min']) 
-                                                     & (self.values_df['Valence_mean_' + gender] <= self.group_values['ple_val_max'])
-                                                     & (self.values_df['Arousal_mean_' + gender] >= self.group_values['ple_aro_min'])
-                                                     & (self.values_df['Arousal_mean_' + gender] <= self.group_values['ple_aro_max'])]
-                
-                self.selected_ple = self.selected_ple.sample(n=self.group_size)
-                self.selected_ple['group'] = pd.Series('pleasure', index=self.selected_ple.index)
-                
-                
-          
-                
-                self.selected_ple['path'] = pd.Series('pleasure', index=self.selected_ple.index)
-                
-                self.selected_unp = self.values_df.loc[(self.values_df['Valence_mean_' + gender] >= self.group_values['unp_val_min']) 
-                                                     & (self.values_df['Valence_mean_' + gender] <= self.group_values['unp_val_max'])
-                                                     & (self.values_df['Arousal_mean_' + gender] >= self.group_values['unp_aro_min'])
-                                                     & (self.values_df['Arousal_mean_' + gender] <= self.group_values['unp_aro_max'])]
-                
-                self.selected_unp = self.selected_unp.sample(n=self.group_size)
-                self.selected_unp['group'] = pd.Series('unpleasure', index=self.selected_unp.index)
-                
-                self.selected_neu = self.values_df.loc[(self.values_df['Valence_mean_' + gender] >= self.group_values['neu_val_min']) 
-                                                     & (self.values_df['Valence_mean_' + gender] <= self.group_values['neu_val_max'])
-                                                     & (self.values_df['Arousal_mean_' + gender] >= self.group_values['neu_aro_min'])
-                                                     & (self.values_df['Arousal_mean_' + gender] <= self.group_values['neu_aro_max'])]
-                
-                self.selected_neu = self.selected_neu.sample(n=self.group_size)
-                self.selected_neu['group'] = pd.Series('neutral', index=self.selected_neu.index) 
-                
-            
-                self.selected_images = pd.concat([ self.selected_ple,  self.selected_unp,  self.selected_neu])
-                
-                
-                self.selected_images['path'] = pd.Series(
-                        [os.path.join(self.images_dir, image_name) for image_name in list(stim.selected_images['Theme'])],
-                        index=self.selected_images.index
-                        )
-                
-                
-                self.selected_images.to_csv(
-                        os.path.join(
-                                self.curr_exp_dir,
-                                'selected_images_' + gender + '.csv'
-                                )
-                        )
-                        
+
+
     def build_exp_dirs(self):
         # build current experiment directory
         self.curr_stim_path_dict = {}
         self.curr_exp_dir = self.create_dir(
             folder_root=self.cwd,
-            folder_name=self.experiment_name
-        )
-
-    def build_gen_dirs(self):
-        # build dirs (first run)
-        self.df_dir = os.path.join(self.cwd, 'database')
-        if not os.path.exists(self.df_dir):
-            print('first time run: create dirs')
-            os.makedirs(self.df_dir)
-            #            for stim in self.stim_types:
-
-    #                # to update in future version
-    #                _ = self.create_dir(
-    #                        folder_root=self.df_dir,
-    #                        folder_name=''
-            
-
-     
-        
+            folder_name=self.experiment_name)
 
 
-    
-    def load_dataset(self):
-        """
-        load dataset for current stimulation
-        """
-           
-        # load curr stim directory         
-        self.curr_stim_dir = os.path.join(
-                self.df_dir, 
-                self.curr_stim_type
-                )  
-        if not os.path.exists(self.df_dir):
-            print('error: type is stimulation type is not allowed')
-        
-        # load current dataset
-        self.dataset_dir = os.path.join(
-            self.curr_stim_dir, 
-            self.dataset_name
-            )
-        if not os.path.exists(self.dataset_dir):
-            print('error: the dataset {} does not exists'.format(self.dataset_name))
-            
-        if self.stim_genders == None:
-            self.values_path = os.path.join(
-                self.dataset_dir, 
-                self.dataset_name +'.csv'
-            )
-        else:
-            self.values_path = os.path.join(
-                self.dataset_dir, 
-                self.dataset_name + '_gender' +'.csv'
-            )
-
-        self.values_df = pd.read_csv(self.values_path)       
-        if self.curr_stim_type == 'images':
-            self.images_dir = os.path.join(self.dataset_dir, 'Images')
-            self.images_list = os.listdir(self.images_dir)
-        elif self.curr_stim_type == 'videos':
-            self.videos_dir = os.path.join(self.dataset_dir, 'Videos')
-            self.videos_list = os.listdir(self.videos_dir)
-        
-        
-#        # experiment stuff
-
-#        
     def showImage(self, imageN=0, image_time=6.0):
         """
         show single image
         """
-#        stim_keys = [] 
+#       stim_keys = []
         currImagePath = self.stim_path_list[imageN]
         currImage = visual.ImageStim(
             self.stim_window, 
