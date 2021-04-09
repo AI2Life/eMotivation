@@ -171,3 +171,9 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+
+# eMotivation specific stuffs
+eMotivation/database/*
+oasis stimulation/*
+
+database/*

@@ -1,51 +1,25 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Feb 22 16:13:48 2021
-
-@author: adria
-"""
-
-
-#%%
-
-from tkinter import Tk
-from tkinter.filedialog import askopenfile
+from typing import Union
 import os
+import time
 import pandas as pd
-from psychopy import visual, event, gui
+from psychopy import visual, gui, core
 import numpy as np
-
-
-
+from psychopy.core import MonotonicClock
+import static
 
 
 class Stimulation:
     """
     A class to stimulate subjects
     """
-    def __init__(self, 
-         exp_name = 'oasis stimulation',
-         stim_types= ['images','videos', 'sounds'], 
-         curr_stim_type = 'images',
-         dataset_name='oasis',
-         stim_genders = None, #['male','female']
-         group_size = 24,
-         stim_groups = ['pleasure', 'neutral', 'unpleasure'],
-         group_values = {
-            'ple_val_min': 4.5,
-            'ple_val_max': 7.0,
-            'ple_aro_min': 4.5,
-            'ple_aro_max': 7.0,
-            'neu_val_min': 3.8,
-            'neu_val_max': 4.2,
-            'neu_aro_min': 1.0,
-            'neu_aro_max': 2.5,
-            'unp_val_min': 1.0,
-            'unp_val_max': 3.0,
-            'unp_aro_min': 4.5,
-            'unp_aro_max': 7.0,
-            }
-         ):
+    def __init__(self,
+                 experiment_name: Union[None, str] = None,
+                 curr_stim_type: str = 'images',
+                 dataset_name: str ='oasis',
+                 group_size: int = 24, # this neutral, pleasure, unpleasure
+                 group_values: Union[dict, None] = None,
+                 cwd: str = os.getcwd()):
+
         """
         exp_name : TYPE str, optional
             DESCRIPTION select experiment name
@@ -67,20 +41,55 @@ class Stimulation:
             The default is ['pleasure', 'neutral', 'unpleasure'].
             
         """
-        self.exp_name = exp_name
-        self.stim_types = stim_types
+
+        self.experiment_name = experiment_name if experiment_name is not None \
+            else ("experiment_%s_%s" %(time.localtime().tm_hour, time.localtime().tm_min))
         self.curr_stim_type = curr_stim_type
         self.dataset_name = dataset_name
-        self.stim_genders = stim_genders
-        self.stim_groups = stim_groups
+        self.stim_genders = ["male", "female", "nonbin"]
         self.group_size = group_size
-        self.group_values = group_values
-    
+        self.stim_types = ["images", "videos", "audios"]
+        self.stim_groups = ['pleasure', 'neutral', 'unpleasure']
+        self.group_values = static.default_group_values if group_values is None else group_values
+
+        """
+        This assume the following directory structure:
+        └── eMotivation/
+            ├── __init__.py
+            ├── run.py
+            ├── static.py
+            └── database/
+                ├── Beauty ratings from Brielmann and Pelli (2019)
+                └── Images/
+                    └── oasis/
+                        ├── Images/
+                        │   ├── Acorns 1.jpg
+                        │   ├── Acorns 2.jpg
+                        │   ├── .......
+                        │   └── .......
+                        ├── oasis.csv
+                        └── oasis_gender.csv
+        """
+        self.cwd = cwd
+        #todo: test with MacOS
+        self.meta_path = os.path.join(os.environ["USERPROFILE"], ".emot_data") if os.name == "nt" \
+            else os.path.join(os.environ["HOME"], ".emot_data")
+        if not os.path.exists(self.meta_path):
+            static.create_meta_dir(self.meta_path)
+        self.config = static.get_config_file(self.meta_path)
+        print("pippo")
+        os.path.isdir('./file.txt')
+        if not os.path.isdir(os.path.join(self.config['database_path'],self.dataset_name)):
+            static.get_oasis(save_path=self.config['database_path'])
+            pass
+        print("pippo")
+        # todo: creare exp_plan in emot_data; salvare csv in exp_plan
         
-        
-        self.cwd = os.getcwd()
-        
+
+
+
         self.build_gen_dirs()
+
         self.load_dataset()
         self.build_exp_dirs()
         
@@ -119,7 +128,7 @@ class Stimulation:
             
             
             self.selected_images['path'] = pd.Series(
-                        [os.path.join(self.images_dir, image_name) for image_name in list(stim.selected_images['Theme'])],
+                        [os.path.join(self.images_dir, image_name) for image_name in list(self.selected_images['Theme'])],
                         index=self.selected_images.index
                         )
             
@@ -181,93 +190,32 @@ class Stimulation:
                                 )
                         )
                         
-                
-            
-#            self.selected_image
-            
-            
-            
-            
-   
-#            selected_unp = gen_values_df.loc[(gen_values_df['Valence_mean_' + self.gender] >= self.val_range[4]) 
-#                                      & (gen_values_df['Valence_mean_' + self.gender] <= self.val_range[5])
-#                                      & (gen_values_df['Arousal_mean_' + self.gender] >= self.aro_range[4])
-#                                      & (gen_values_df['Arousal_mean_' + self.gender] <= self.aro_range[5])]    
-            
-        
-          # select pleasure images
-     
-        
     def build_exp_dirs(self):
         # build current experiment directory
         self.curr_stim_path_dict = {}
         self.curr_exp_dir = self.create_dir(
             folder_root=self.cwd,
-            folder_name=self.exp_name
-            )
-#        self.selected_stim = self.create_dir(
-#            folder_root=self.curr_exp_dir,
-#            folder_name='selected_stim_dir'
-#            )
-#        if self.stim_genders == None:
-#            self.gender_stim = self.create_dir(
-#                folder_root=self.selected_stim,
-#                folder_name='no_gender_diff'
-#            )   
-#        else:
-#            for gender in self.stim_genders:
-#                self.gender_stim = self.create_dir(
-#                    folder_root=self.selected_stim,
-#                    folder_name=gender
-#                    )
-#                for stim_group in self.stim_groups:
-#                    self.group_stim = self.create_dir(
-#                        folder_root=self.gender_stim,
-#                        folder_name=stim_group
-#                        )
-#                    self.curr_stim_path_dict[gender + '_' + stim_group] = \
-#                        self.group_stim
-#                        
-                        
-        
-        
-                
-                    
-                    
-                
-                
-            
-            
-        
-        
-        
-        
-        
-        
-        
-        
-        
+            folder_name=self.experiment_name
+        )
+
     def build_gen_dirs(self):
         # build dirs (first run)
         self.df_dir = os.path.join(self.cwd, 'database')
         if not os.path.exists(self.df_dir):
-            print ('first time run: create dirs')
-            os.makedirs(self.df_dir)            
-#            for stim in self.stim_types:
-#                # to update in future version
-#                _ = self.create_dir(
-#                        folder_root=self.df_dir, 
-#                        folder_name=''
-                      
-                        
+            print('first time run: create dirs')
+            os.makedirs(self.df_dir)
+            #            for stim in self.stim_types:
+
+    #                # to update in future version
+    #                _ = self.create_dir(
+    #                        folder_root=self.df_dir,
+    #                        folder_name=''
             
-#    
-#    
-#    
-    
-    
-    
-    
+
+     
+        
+
+
     
     def load_dataset(self):
         """
@@ -313,24 +261,45 @@ class Stimulation:
 #        # experiment stuff
 
 #        
-#    def showImage(self, imageN=0):
-#        """
-#        show single image
-#        """
+    def showImage(self, imageN=0, image_time=6.0):
+        """
+        show single image
+        """
 #        stim_keys = [] 
-#        currImagePath = os.path.join(
-#                self.imagesDir, 
-#                self.imagesList[imageN]
-#                )
-#        
-#        # present start message
-#        currImage = visual.ImageStim(
-#            self.stim_window, 
-#            currImagePath
-#            )
-#        currImage.draw()
-#        self.stim_window.flip()  
+        currImagePath = self.stim_path_list[imageN]
+        currImage = visual.ImageStim(
+            self.stim_window, 
+            currImagePath
+            )
+        currImage.draw()
+        self.stim_window.flip()
+        self.stims_timestamp.append(self.exp_clock.getTime())
+        core.wait(image_time)
+        
+#        while self.exp_clock.getTime() - image_start < image_time:
+#            
+#            
 #        # wait user 
+#        while len(stim_keys) == 0:
+#            stim_keys = event.getKeys(keyList=['space'])
+#            
+            
+    def show_fixcross(self,fix_time):
+        """
+        show single image
+        """
+        fix = visual.GratingStim(
+            win=self.stim_window,
+            mask="cross", 
+            size=0.05,
+            pos=[0,0],
+            sf=0
+            )
+        fix.draw()
+        self.stim_window.flip()
+        self.fix_timestamp.append(self.exp_clock.getTime())
+        core.wait(fix_time)
+        
 #        while len(stim_keys) == 0:
 #            stim_keys = event.getKeys(keyList=['space'])
 #        
@@ -409,36 +378,95 @@ class Stimulation:
                     )
                 )
             
-            
+    def build_subj_dir(self):
+        
+        self.results_dir = self.create_dir(
+                folder_root=self.curr_exp_dir, 
+                folder_name= 'results'
+                )
+               
+        subj_nick = self.subject_data_show[0]
+        
+        self.curr_subj_dir = self.create_dir(
+                folder_root=self.results_dir,
+                folder_name=subj_nick
+                )
+        
+                
             
     
-    def run_experiment(self):
+    def run_experiment(
+            self, 
+            image_time = 6,
+            fix_time = 6 
+            ):
 #        
         
         self.get_subj_info()
-        self.get_subj_stim()
+        self.build_subj_dir()
+        
+        if self.stim_genders == None:
+            
+            self.curr_stims_csv = pd.read_csv(os.path.join(
+                self.curr_exp_dir,
+                'selected_images_nogender.csv'
+                ) 
+            )
+                
+            self.curr_stims_csv = self.curr_stims_csv.sample(frac=1)
+            
+            self.stim_path_list = list(self.curr_stims_csv['path']) 
+            
+            
+            
+            
+        #init stim
+        if self.curr_stim_type == 'images':
+        
+            self.stim_window_size = [1920,1080]
+            self.stim_window = visual.Window(
+                size = self.stim_window_size,
+                monitor="testMonitor", 
+                color='black', 
+                units='norm',                                       
+                fullscr = False
+                )   
+#            
+            image_counter = 0
+            self.exp_clock = MonotonicClock()
+            self.stims_timestamp = []
+            self.fix_timestamp = []
+            while image_counter < len(self.stim_path_list)*2:
+                
+                if image_counter % 2 == 0:
+                    fix_time = np.random.uniform(fix_time-2,fix_time+2)
+                    self.show_fixcross(fix_time)
+                    
+                else:
+                    
+                    self.showImage(imageN=image_counter//2)
+                image_counter +=1
+            self.stim_window.close()
+        
+        
+        
+        
+            
+            
+        
+        
+        
+        
+        
+#        self.get_subj_stim()
         
 #        """
 #        show serial images
 #        """
 #        
-#        if self.curr_stim_type == 'images':
-#        
-#            self.stim_window_size = [1920,1080]
-#            self.stim_window = visual.Window(
-#                size = self.stim_window_size,
-#                monitor="testMonitor", 
-#                color='black', 
-#                units='norm',                                       
-#                fullscr = False
-#                )
+
 #            
-#            image_counter = 0
-#            while image_counter < max_images:
-#                self.showImage(imageN=curr_image_num)
-#                curr_image_num +=1
-#                image_counter +=1
-#            self.stim_window.close()
+#            
         
     def create_dir(self,
         folder_root='root', 
@@ -453,62 +481,15 @@ class Stimulation:
             print ('run: load dir {}'.format(folder_name))
         return folder_path
         
-    
-        
-    
-        
-    
-        
-            
-            
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
 if __name__ == '__main__':
-    
     stim = Stimulation(
-        exp_name = 'oasis stimulation',
+        experiment_name='oasis stimulation',
         curr_stim_type = 'images', 
         dataset_name='oasis',
-        stim_genders= None, #['men', 'women'],
-        stim_groups = ['pleasure', 'neutral', 'unpleasure'],
-        group_size = 24,
-        group_values = {
-            'ple_val_min': 4.5,
-            'ple_val_max': 7.0,
-            'ple_aro_min': 4.5,
-            'ple_aro_max': 7.0,
-            'neu_val_min': 3.8,
-            'neu_val_max': 4.2,
-            'neu_aro_min': 1.0,
-            'neu_aro_max': 2.5,
-            'unp_val_min': 1.0,
-            'unp_val_max': 3.0,
-            'unp_aro_min': 4.5,
-            'unp_aro_max': 7.0,
-            }
-        )
-    
-    stim.run_experiment()
+        group_size = 24)
+
+
+    # stim.run_experiment()
 #    a = stim.values_df
   
     
