@@ -1,12 +1,12 @@
 import mne
 import os
 import matplotlib
-matplotlib.use("Tkagg")
+# matplotlib.use("qt5")
 import numpy as np
 from mne import events_from_annotations
 import matplotlib.pyplot as plt
 
-SOURCE = "E:\\datasets\\DEAP\\data_original\\s01.bdf"
+SOURCE = "C:\\Users\\bianc\\Desktop\\ImageStim\\SGR\\DEAP\\s01.bdf"
 data = mne.io.read_raw_bdf(SOURCE, preload=True)
 
 """
@@ -28,11 +28,30 @@ while occurence <= 11:
         occurence += 1
     index += 1
 
-data.crop(tmin=index/512, tmax=len(data)/512-1)
+# data=data.crop(tmin=index/512, tmax=len(data)/512-1)
 events = mne.find_events(data, stim_channel="Status")
 mapping = { 1 : "A", 2: "B", 3: "C", 4: "D", 5:"E", 7: "F"}
 annotation =  mne.annotations_from_events(events=events, event_desc=mapping,
                                           sfreq=data.info['sfreq'],
                                           orig_time=data.info['meas_date'])
 data.set_annotations(annotation)
+
+matrix_data=[]
+datas=data.get_data()
+
+
+for label, onset in zip(annotation.description, annotation.onset):
+    if label== "D":
+        
+        matrix_data.append(datas[:,int(onset*512): int((onset + 60)*512)])
+        
+x=np.stack(matrix_data)
+
+      
+        
+        
+        
+        
+
+
 
