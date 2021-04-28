@@ -4,10 +4,9 @@ import matplotlib
 matplotlib.use("Tkagg")
 import numpy as np
 from mne import events_from_annotations
+import matplotlib.pyplot as plt
 
-
-SOURCE = "D:\\datasets\\DEAP\\data_original\\s01.bdf"
-
+SOURCE = "E:\\datasets\\DEAP\\data_original\\s01.bdf"
 data = mne.io.read_raw_bdf(SOURCE, preload=True)
 
 """
@@ -30,14 +29,10 @@ while occurence <= 11:
     index += 1
 
 data.crop(tmin=index/512, tmax=len(data)/512-1)
-
 events = mne.find_events(data, stim_channel="Status")
-
 mapping = { 1 : "A", 2: "B", 3: "C", 4: "D", 5:"E", 7: "F"}
-
 annotation =  mne.annotations_from_events(events=events, event_desc=mapping,
                                           sfreq=data.info['sfreq'],
                                           orig_time=data.info['meas_date'])
-
 data.set_annotations(annotation)
 
