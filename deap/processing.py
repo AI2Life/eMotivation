@@ -1,7 +1,7 @@
 import mne
 import os
 import matplotlib
-# matplotlib.use("qt5")
+matplotlib.use("Tkagg") #Tranquillo, nun te sfondo il computer è per plottare la roba meglio!
 import numpy as np
 from mne import events_from_annotations
 import matplotlib.pyplot as plt
@@ -21,7 +21,7 @@ import pandas as pd
 xs = list()
 sub_ys = list()
 total_ys = list()
-PATH = "E:\\datasets\\DEAP\\data_original"
+PATH = "C:\\Users\pietr\Desktop\Master\datasets\DEAP"
 
 for sub_index, subject in enumerate(os.scandir(PATH)):
     if sub_index < 20:
@@ -31,9 +31,12 @@ for sub_index, subject in enumerate(os.scandir(PATH)):
         print()
         print("Processing.. " + str(subject))
         print()
-        if sub_index >= 23: #24 e 29
+        if sub_index >= 23 and sub_index != 28: #24 e 29
             events = mne.find_events(data, stim_channel="")
             mapping = {1638145: "A", 1638146:"B", 1638147:"C", 1638148:"D", 1638149:"E", 1638151:"F"}
+        elif sub_index == 28:
+            events = mne.find_events(data, stim_channel="-1")
+            mapping = {1638145: "A", 1638146: "B", 1638147: "C", 1638148: "D", 1638149: "E", 1638151: "F"}
         else:
             events = mne.find_events(data, stim_channel="Status")
             mapping = {1: "A", 2: "B", 3: "C", 4: "D", 5: "E", 7: "F"}
@@ -43,18 +46,17 @@ for sub_index, subject in enumerate(os.scandir(PATH)):
         data.set_annotations(annotation)
         matrix_data = []
         datas = data.get_data()
-
         for label, onset in zip(annotation.description, annotation.onset):
             if label == "D":
                 matrix_data.append(datas[:, int(onset * 512): int((onset + 60) * 512)])
 
         xs.append(np.stack(matrix_data))  # <-- sta qui
 
-        video_list = pd.read_csv("E:\\datasets\\DEAP\\metadata_xls\\video_list.csv")
+        video_list = pd.read_csv("C:\\Users\\pietr\\Desktop\\ProgettoA\\eMotivation\\deap\\video_list.csv")
         # medio
 
         partecipant_rating = pd.read_csv(
-            "E:\\datasets\\DEAP\\metadata_xls\\participant_ratings.csv")  # prendere i valori di A e V
+            "C:\\Users\\pietr\\Desktop\\ProgettoA\\eMotivation\\deap\\participant_ratings.csv")  # prendere i valori di A e V
 
         sub_rating = partecipant_rating[partecipant_rating.Participant_id == sub_index+1]
 
@@ -82,7 +84,14 @@ with open("E:\\datasets\\DEAP\\generated\\sub_ys.pkl", "wb") as file:
 with open("E:\\datasets\\DEAP\\generated\\total_ys.pkl", "wb") as file:
     pickle.dump(np.stack(total_ys), file)
 
-        
+# import mne
+# s_29_path = "C:\\Users\pietr\Desktop\Master\datasets\DEAP\\s29.bdf"
+# s = mne.io.read_raw_bdf(s_29_path, preload=True)
+#
+# print(s.ch_names)
+# import matplotlib
+# matplotlib.use("Qt5Agg")
+# s.plot()
 
 
 
