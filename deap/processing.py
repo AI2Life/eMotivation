@@ -42,9 +42,7 @@ datas=data.get_data()
 
 for label, onset in zip(annotation.description, annotation.onset):
     if label== "D":
-        
         matrix_data.append(datas[:,int(onset*512): int((onset + 60)*512)])
-        
 x=np.stack(matrix_data)
 
       
