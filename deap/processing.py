@@ -5,9 +5,7 @@ import matplotlib
 import numpy as np
 from mne import events_from_annotations
 import matplotlib.pyplot as plt
-
-SOURCE = "C:\\Users\\bianc\\Desktop\\ImageStim\\SGR\\DEAP\\s01.bdf"
-data = mne.io.read_raw_bdf(SOURCE, preload=True)
+import pandas as pd
 
 """
 1 (First occurence)	N/A	start of experiment (participant pressed key to start)
@@ -20,35 +18,70 @@ data = mne.io.read_raw_bdf(SOURCE, preload=True)
 7	N/A	End of experiment
 """
 
-stim_chan = data._data[-1].copy()
-occurence = 0
-index = 0
-while occurence <= 11:
-    if stim_chan[index] == 1:
-        occurence += 1
-    index += 1
+xs = list()
+sub_ys = list()
+total_ys = list()
+PATH = "E:\\datasets\\DEAP\\data_original"
 
-# data=data.crop(tmin=index/512, tmax=len(data)/512-1)
-events = mne.find_events(data, stim_channel="Status")
-mapping = { 1 : "A", 2: "B", 3: "C", 4: "D", 5:"E", 7: "F"}
-annotation =  mne.annotations_from_events(events=events, event_desc=mapping,
-                                          sfreq=data.info['sfreq'],
-                                          orig_time=data.info['meas_date'])
-data.set_annotations(annotation)
+for sub_index, subject in enumerate(os.scandir(PATH)):
+    if sub_index < 20:
+        pass
+    else:
+        data = mne.io.read_raw_bdf(subject.path, preload=True)
+        print()
+        print("Processing.. " + str(subject))
+        print()
+        if sub_index >= 23: #24 e 29
+            events = mne.find_events(data, stim_channel="")
+            mapping = {1638145: "A", 1638146:"B", 1638147:"C", 1638148:"D", 1638149:"E", 1638151:"F"}
+        else:
+            events = mne.find_events(data, stim_channel="Status")
+            mapping = {1: "A", 2: "B", 3: "C", 4: "D", 5: "E", 7: "F"}
+        annotation = mne.annotations_from_events(events=events, event_desc=mapping,
+                                                 sfreq=data.info['sfreq'],
+                                                 orig_time=data.info['meas_date'])
+        data.set_annotations(annotation)
+        matrix_data = []
+        datas = data.get_data()
 
-matrix_data=[]
-datas=data.get_data()
+        for label, onset in zip(annotation.description, annotation.onset):
+            if label == "D":
+                matrix_data.append(datas[:, int(onset * 512): int((onset + 60) * 512)])
 
+        xs.append(np.stack(matrix_data))  # <-- sta qui
 
-for label, onset in zip(annotation.description, annotation.onset):
-    if label== "D":
-        matrix_data.append(datas[:,int(onset*512): int((onset + 60)*512)])
-x=np.stack(matrix_data)
+        video_list = pd.read_csv("E:\\datasets\\DEAP\\metadata_xls\\video_list.csv")
+        # medio
 
-      
-        
-        
-        
+        partecipant_rating = pd.read_csv(
+            "E:\\datasets\\DEAP\\metadata_xls\\participant_ratings.csv")  # prendere i valori di A e V
+
+        sub_rating = partecipant_rating[partecipant_rating.Participant_id == sub_index+1]
+
+        AVG_rating = list()  # y
+        sub_rati = list()  # y2
+
+        for row in sub_rating.iterrows():
+            total_rating = video_list[video_list.Experiment_id == row[1].Experiment_id]
+            AVG_rating.append(np.array([total_rating.AVG_Valence.item(),
+                                        total_rating.AVG_Arousal.item()]))
+            sub_rati.append(np.array([row[1].Valence, row[1].Arousal]))
+
+        sub_ys.append(np.stack(AVG_rating))
+        total_ys.append(np.stack(sub_rati))
+
+        del data
+    
+import pickle
+with open("E:\\datasets\\DEAP\\generated\\xs.pkl", "wb") as file:
+    pickle.dump(np.stack(xs),file)
+
+with open("E:\\datasets\\DEAP\\generated\\sub_ys.pkl", "wb") as file:
+    pickle.dump(np.stack(sub_ys),file)
+
+with open("E:\\datasets\\DEAP\\generated\\total_ys.pkl", "wb") as file:
+    pickle.dump(np.stack(total_ys), file)
+
         
 
 
