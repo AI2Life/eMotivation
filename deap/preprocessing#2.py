@@ -17,17 +17,39 @@ y = np.concatenate(sub_ys, axis=0)
 del xs
 del sub_ys
 
-x_train, x_test, y_train, y_test = train_test_split(x,y, random_state=23)
+from sklearn.cluster import KMeans
+kmeans = KMeans(n_clusters=3)
+kmeans.fit(y)
+centroid = kmeans.cluster_centers_
+labels = kmeans.labels_
 
-kernel_size_1 = 60
-kernel_size_2 = 10
+
+raw_x_train, x_test, raw_y_train, y_test = train_test_split(x, labels, random_state=23,
+                                                         stratify=labels)
+
+import time
+start = time.time()
+from imblearn.over_sampling import SMOTE
+sampling_rate = {0:1000, 1:1000, 2:1000}
+sm = SMOTE(random_state=42, sampling_strategy=sampling_rate)
+sm_x_train, y_train = sm.fit_resample(raw_x_train.reshape(raw_x_train.shape[0],
+                                      raw_x_train.shape[1]*raw_x_train.shape[2]), raw_y_train)
+
+x_train = sm_x_train.reshape(sm_x_train.shape[0], int(sm_x_train.shape[1]/32), 32)
+
+print("smote took: ", time.time() - start)
+
+
+#%%
+kernel_size_1 = 30
+kernel_size_2 = 6
 drop_rate = 0.4
-learning_rate = 1e-3
+learning_rate = 1e-4
 
 
 model = tf.keras.models.Sequential()
 
-model.add(tf.keras.layers.Conv1D(8, kernel_size=kernel_size_1, input_shape=(x_train.shape[1],
+model.add(tf.keras.layers.Conv1D(16, kernel_size=kernel_size_1, input_shape=(x_train.shape[1],
                                                                             x_train.shape[2]),
                                  data_format="channels_first", activation="relu"))
 model.add(tf.keras.layers.BatchNormalization())
@@ -47,16 +69,16 @@ model.add(tf.keras.layers.Dense(32, activation="relu"))
 model.add(tf.keras.layers.Dropout(rate=drop_rate))
 model.add(tf.keras.layers.Dense(16, activation="relu"))
 model.add(tf.keras.layers.Dropout(rate=drop_rate))
-model.add(tf.keras.layers.Dense(2, activation="linear"))
+model.add(tf.keras.layers.Dense(3, activation="softmax"))
 
 model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-              loss=tf.keras.losses.mean_absolute_error, metrics=["mae", "mse"])
+              loss=tf.keras.losses.categorical_crossentropy, metrics=["accuracy"])
 
 model.summary()
 
 
-model.fit(x_train, y_train, batch_size=2, epochs=100, validation_split=0.2)
+model.fit(x_train, y_train, batch_size=32, epochs=100, validation_data=(x_test, y_test))
 
 
 
-model.evaluate(x_test, y_test)
+# model.evaluate(x_test, y_test)
