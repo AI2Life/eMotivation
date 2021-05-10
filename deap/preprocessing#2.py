@@ -14,12 +14,14 @@ del sub_ys[27]
 
 x = np.concatenate(xs, axis=0)
 y = np.concatenate(sub_ys, axis=0)
+del xs
+del sub_ys
 
 x_train, x_test, y_train, y_test = train_test_split(x,y, random_state=23)
 
 kernel_size_1 = 60
 kernel_size_2 = 10
-drop_rate = 0.5
+drop_rate = 0.4
 learning_rate = 1e-3
 
 
@@ -53,7 +55,7 @@ model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
 model.summary()
 
 
-model.fit(x_train, y_train, batch_size=5, epochs=50, validation_split=0.2)
+model.fit(x_train, y_train, batch_size=2, epochs=100, validation_split=0.2)
 
 
 
