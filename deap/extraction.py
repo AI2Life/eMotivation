@@ -28,7 +28,7 @@ import pandas as pd
 #     del data
 
 ch_to_pick = ['Fp1', 'AF3', 'F7', 'F3', 'FC1', 'FC5', 'T7', 'C3', 'CP1', 'CP5', 'P7', 'P3', 'Pz',
-              'PO3', 'O1', 'Oz', 'O2', 'PO4', 'P4', 'P8','CP6', 'CP2', 'C4', 'T8', 'FC6', 'FC2',
+              'PO3', 'O1', 'Oz', 'O2', 'PO4', 'P4', 'P8', 'CP6', 'CP2', 'C4', 'T8', 'FC6', 'FC2',
               'F4', 'F8', 'AF4', 'Fp2', 'Fz', 'Cz']
 
 xs = list()
@@ -101,6 +101,9 @@ with open("E:\\datasets\\DEAP\\generated\\sub_ys.pkl", "wb") as file:
 
 with open("E:\\datasets\\DEAP\\generated\\total_ys.pkl", "wb") as file:
     pickle.dump(total_ys, file)
+
+
+
 
 import mne
 s_29_path = "E:\\datasets\\DEAP\\data_original\\s28.bdf"
